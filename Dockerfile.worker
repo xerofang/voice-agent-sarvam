@@ -1,0 +1,23 @@
+# Dockerfile for Voice Agent Worker
+# This runs the LiveKit agent that handles voice calls
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libffi-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy agent worker code
+COPY agent_worker.py .
+
+# The agent worker requires the 'start' command
+CMD ["python", "agent_worker.py", "start"]

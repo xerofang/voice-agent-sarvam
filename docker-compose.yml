@@ -1,0 +1,50 @@
+# Docker Compose for Voice Agent
+# This runs BOTH the web server and agent worker
+# Use this if you want everything in Docker
+
+version: '3.8'
+
+services:
+  # Web Server - provides UI and API
+  web-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: voice-agent-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - N8N_BASE_URL=${N8N_BASE_URL:-}
+      - N8N_WEBHOOK_AGENT_CONFIG=${N8N_WEBHOOK_AGENT_CONFIG:-/webhook/agent-config}
+      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-hi-IN}
+      - DEFAULT_VOICE=${DEFAULT_VOICE:-aditya}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Agent Worker - handles voice calls
+  agent-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: voice-agent-worker
+    restart: unless-stopped
+    environment:
+      - SARVAM_API_KEY=${SARVAM_API_KEY}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+      - LIVEKIT_URL=${LIVEKIT_URL}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - LLM_MODEL=${LLM_MODEL:-llama-3.3-70b-versatile}
+      - WEB_SERVER_URL=http://web-server:3000
+      - DEFAULT_LANGUAGE=${DEFAULT_LANGUAGE:-hi-IN}
+      - DEFAULT_VOICE=${DEFAULT_VOICE:-aditya}
+    depends_on:
+      - web-server
